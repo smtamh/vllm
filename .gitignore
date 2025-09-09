@@ -1,0 +1,9 @@
+__pycache__
+models/
+
+# 3rd party
+!third_party/flashinfer
+third_party/flashinfer/build/
+third_party/flashinfer/dist/
+third_party/flashinfer/.venv/
+third_party/flashinfer/.cache/

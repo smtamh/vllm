@@ -1,0 +1,24 @@
+[{
+    "type": "function",
+    "function":{
+        "name": "rock_paper_scissors",
+        "description": "You will play rock-paper-scissors as an assistant when the user requests or say rock-paper-scissors. This function selects and executes the assistant's move, detects the user's move from the image, and return both moves. After the game, you have to explain the result and say whether the user won, lost, or tied.",
+        "parameters":{
+            "type": "object",
+            "properties":{},
+            "required": []
+        }
+    }
+},
+{
+    "type": "function",
+    "function":{
+        "name": "say_hello",
+        "description": "Wave your hand when the user says hello.",
+        "parameters":{
+            "type": "object",
+            "properties":{},
+            "required": []
+        }
+    }
+}]
