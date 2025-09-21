@@ -1,11 +1,6 @@
 # UTILS
-import os, sys, time, json
-from PIL import Image
+import json
 from collections import deque
-
-# EXTERNAL FILES
-import config
-from utils import build_prompt
 
 class MsgBuffer:
     def __init__(self, system_prompt, max_groups=5):

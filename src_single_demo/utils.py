@@ -1,5 +1,4 @@
-import json, os, cv2
-
+import json, cv2
 import config
 
 def build_prompt(role=config.ROLE_PATH, tool=config.TOOL_PATH):
@@ -18,7 +17,6 @@ def build_prompt(role=config.ROLE_PATH, tool=config.TOOL_PATH):
 
     system_prompt = role_text.replace("{{TOOLS_JSON}}", tools_str)
     return system_prompt
-
 
 def center_crop(img, size=320):
     h, w = img.shape[:2]

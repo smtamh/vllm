@@ -1,5 +1,6 @@
 __pycache__
-models/
+models/*
+!models/yolo_best.py
 
 # 3rd party
 !third_party/flashinfer

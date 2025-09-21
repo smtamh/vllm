@@ -1,3 +1,12 @@
+#########################################################
+"""
+Chat with VLM and tools
+
+integrated with STT (Vosk) and TTS (espeak-ng)
+
+"""
+#########################################################
+
 # UTILS
 import os, cv2, subprocess
 from PIL      import Image
@@ -77,8 +86,9 @@ def main():
 
             print(conversation)
 
-        else:
-            subprocess.run(["espeak-ng", "-s", "150", "-v", "ko", answer])
+        # # TTS
+        # else:
+        #     subprocess.run(["espeak-ng", "-s", "150", "-v", "en-us", answer])
 
 if __name__ == "__main__":
     main()

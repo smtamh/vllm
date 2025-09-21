@@ -1,7 +1,6 @@
-import os, tempfile, json, queue
+import os, tempfile, json, queue, subprocess
 import soundfile as sf
 import sounddevice as sd
-from pydub import AudioSegment
 from scipy.signal import resample
 from vosk import Model, KaldiRecognizer
 import config
@@ -17,20 +16,36 @@ def downsample(wav_path, target_sr=16000):
     return audio, target_sr
 
 def convert_to_wav(audio_file_path):
-    """오디오 파일을 WAV 포맷으로 변환"""
     try:
         file_ext = os.path.splitext(audio_file_path)[1].lower()
         if file_ext == '.wav':
             return audio_file_path
         
-        # MP3, FLAC 등 → WAV 변환
-        audio = AudioSegment.from_file(audio_file_path)
         temp_wav = tempfile.NamedTemporaryFile(suffix='.wav', delete=False)
-        audio.export(temp_wav.name, format="wav")
+        temp_wav.close()
+        
+        cmd = [
+            'ffmpeg', '-i', audio_file_path,
+            '-ar', '16000',  # sample rate 16kHz
+            '-ac', '1',      # mono channel
+            '-sample_fmt', 's16',  # 16bit
+            '-y',            # overwrite
+            temp_wav.name
+        ]
+        
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        
+        if result.returncode != 0:
+            print(f"FFmpeg error: {result.stderr}")
+            os.unlink(temp_wav.name)
+            return None
+            
         return temp_wav.name
     
     except Exception as e:
         print(f"Error converting audio file: {e}")
+        if 'temp_wav' in locals() and os.path.exists(temp_wav.name):
+            os.unlink(temp_wav.name)
         return None
 
 
@@ -68,7 +83,7 @@ def recognize_from_mic(stt_model, duration_sec=5, samplerate=16000, blocksize=80
     def _callback(indata, frames, time, status):
         if status:
             print(status, flush=True)
-        q.put(indata.copy())
+        q.put(indata.copy().tobytes())
 
     rec = KaldiRecognizer(stt_model, samplerate)
     rec.SetWords(True)
