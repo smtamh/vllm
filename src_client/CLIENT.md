@@ -39,7 +39,7 @@ Check server IP and client IP first:
 
     hostname -I
 
-Update `config.py` in the `src_client/` and `src_server/` folder, then run:
+Update `config.py - # Network Settings` in the `src_client/` and `src_server/` folder, then run:
 
     micromamba activate client
     python node_inference.py
@@ -63,3 +63,6 @@ Run inference server remotely via SSH:
     ssh SERVER_NAME
     micromamba activate server
     python node_final.py
+
+### Switch Input from STT to Keyboard Input
+Update `config.py - # Input Mode` in the `src_client/` and `src_server/` folder.

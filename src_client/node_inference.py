@@ -125,11 +125,11 @@ class InferenceNode:
             if self.latest_image is not None:
                 self.conversation.update_image(self.latest_image)
                 
-                # Save image
-                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                image_path = os.path.join(config.IMAGE_DIR, f"image_{timestamp}.jpg")
-                self.latest_image.save(image_path)
-                rospy.loginfo(f"Image saved to {image_path}")
+                # # Save image
+                # timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                # image_path = os.path.join(config.IMAGE_DIR, f"image_{timestamp}.jpg")
+                # self.latest_image.save(image_path)
+                # rospy.loginfo(f"Image saved to {image_path}")
             else:
                 rospy.logwarn("No valid image available for tool execution.")
                 return

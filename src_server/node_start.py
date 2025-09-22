@@ -29,8 +29,9 @@ class StartNode:
         rospy.init_node('start_node', anonymous=True)
         rospy.loginfo(f"🌐 SERVER_ROS_MASTER_URI: {config.SERVER_ROS_MASTER_URI}")
         rospy.loginfo(f"🌐 SERVER_ROS_IP: {config.SERVER_ROS_IP}")
-        
+
         # Publishers
+        self.text_queue = queue.Queue() # Queue for finalized STT sentences / typed input
         self.text_pub = rospy.Publisher('/audio_text', String, queue_size=10)
         self.image_pub = rospy.Publisher('/camera_image', CompressedImage, queue_size=10)
         
@@ -43,15 +44,23 @@ class StartNode:
         
         # STT
         self.stt_model = Model(config.STT_PATH)
-        self.stt_queue = queue.Queue()
         self.stop_event = threading.Event()
         self.stt_thread = threading.Thread(target=self.stt_worker, daemon=True)
-        self.stt_thread.start()
 
         # TTS
         self.tts_playing = threading.Event()
         rospy.Subscriber('/tts_playing', Bool, self.tts_state_callback)
         
+        # Type input
+        self.typing_thread = threading.Thread(target=self.typing_worker, daemon=True)
+        
+        # Input mode: STT or typing
+        if config.USE_TYPING:
+            self.typing_thread.start()
+        else:
+            self.stt_thread.start()
+
+        rospy.on_shutdown(self.cleanup)
         rospy.loginfo("Start Node initialized")
     
     def capture_image_and_pub(self):
@@ -69,7 +78,7 @@ class StartNode:
             self.tts_playing.set()
             # TTS started -> clear any previously finalized sentences from the text queue
             while True:
-                try: self.stt_queue.get_nowait()
+                try: self.text_queue.get_nowait()
                 except queue.Empty: break
         else:
             self.tts_playing.clear()
@@ -110,33 +119,64 @@ class StartNode:
                     res = json.loads(rec.Result())
                     text = res.get('text', '').strip()
                     if text:
-                        self.stt_queue.put(text)
+                        self.text_queue.put(text)
                         rospy.loginfo(f"Recognized: {text}")
 
             # process any remaining audio
             final_res = json.loads(rec.FinalResult())
             final_text = final_res.get('text', '').strip()
             if final_text:
-                self.stt_queue.put(final_text)
+                self.text_queue.put(final_text)
                 rospy.loginfo(f"Final Recognized: {final_text}")
 
-    def stt_and_pub(self):
+    def typing_worker(self):
+        while not rospy.is_shutdown():
+            try:
+                text = input()
+                if text.strip():
+                    self.text_queue.put(text.strip())
+                    rospy.loginfo(f"Typed input: {text.strip()}")
+            except (EOFError, KeyboardInterrupt):
+                rospy.signal_shutdown("Input closed")
+                break
+
+    def publish_text_from_queue(self):
         # TTS playing -> prevent publishing previously finalized sentences from the text queue
+        # no TTS -> can be ignored
         if self.tts_playing.is_set():
             return
         try:
-            text = self.stt_queue.get_nowait()
+            text = self.text_queue.get_nowait()
         except queue.Empty:
             return
         self.text_pub.publish(String(data=text))
-        rospy.loginfo(f"Audio recognized: {text}")
-    
+        rospy.loginfo(f"Text published: {text}")
+
     def run(self):
         rate = rospy.Rate(10)               # 10 Hz
-        while not rospy.is_shutdown():
-            self.capture_image_and_pub()
-            self.stt_and_pub()
-            rate.sleep()
+        try:
+            while not rospy.is_shutdown():
+                self.capture_image_and_pub()
+                self.publish_text_from_queue()
+                rate.sleep()
+        except KeyboardInterrupt:
+            rospy.loginfo("KeyboardInterrupt detected, shutting down...")
+            self.cleanup()
+            raise
+
+    def cleanup(self):
+            try:
+                if hasattr(self, 'stop_event'):
+                    self.stop_event.set()
+                if hasattr(self, 'stt_thread') and self.stt_thread.is_alive():
+                    self.stt_thread.join(timeout=1.0)
+
+                if self.cap.isOpened():
+                    self.cap.release()
+                cv2.destroyAllWindows()
+                rospy.loginfo("Resources cleaned up successfully")
+            except Exception as e:
+                rospy.logerr(f"Error during cleanup: {e}")
 
 if __name__ == '__main__':
     try:

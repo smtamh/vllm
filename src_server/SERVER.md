@@ -39,4 +39,5 @@ Or, simply run a few Linux commands.
 <br>
 
 ## Inference
-Check `CLIENT.md` in the `src_client/` folder.
+Use as an SSH server.  
+Check `src_client/CLIENT.md`.
