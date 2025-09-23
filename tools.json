@@ -2,7 +2,7 @@
     "type": "function",
     "function":{
         "name": "rock_paper_scissors",
-        "description": "You will play rock-paper-scissors as an assistant when the user requests or say rock-paper-scissors. This function selects and executes the assistant's move, detects the user's move from the image, and return both moves. After the game, you have to explain the result and say whether the user won, lost, or tied.",
+        "description": "You must play rock-paper-scissors as an assistant when the user requests or say rock-paper-scissors. The user plays as your opponent. This function selects and executes the assistant's move, detects the user's move from the image, and return both moves. After the game, you have to explain the result and say whether the user won, lost, or tied. Rock wins against scissors, scissors win against paper, and paper wins against rock. If the user's move and the assistant's move are the same, it's a tie.",
         "parameters":{
             "type": "object",
             "properties":{},

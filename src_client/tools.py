@@ -39,6 +39,30 @@ def rock_paper_scissors(image=None):
             else:
                 opponent_choice = "unknown"
 
+    if opponent_choice == "paper":
+        if choice == "rock":
+            winner = "user"
+        elif choice == "paper":
+            winner = "tie"
+        else:
+            winner = "assistant"
+    elif opponent_choice == "rock":
+        if choice == "rock":
+            winner = "tie"
+        elif choice == "paper":
+            winner = "assistant"
+        else:
+            winner = "user"
+    elif opponent_choice == "scissors":
+        if choice == "rock":
+            winner = "assistant"
+        elif choice == "paper":
+            winner = "user"
+        else:
+            winner = "tie"
+    else:
+        winner = "unknown"
+
     # visualize
     if opponent_box is not None:
         annotated = image_cropped.copy()
@@ -47,10 +71,10 @@ def rock_paper_scissors(image=None):
         cv2.putText(annotated, opponent_choice, (x1, y1-10), 
                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
         cv2.imshow("YOLO Result", annotated)
-        cv2.waitKey(0)
+        cv2.waitKey(1000)
         cv2.destroyAllWindows()
 
-    result = {"assistant_move": choice, "user_move": opponent_choice}
+    result = {"assistant_move": choice, "user_move": opponent_choice, "winner": winner}
     return result
 
 def say_hello(image=None):

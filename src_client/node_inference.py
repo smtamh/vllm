@@ -113,8 +113,7 @@ class InferenceNode:
                 tts_msg.data = answer
                 self.tts_pub.publish(tts_msg)
 
-            # Visualize (optional)
-            self.visualize_image()
+                self.visualize_image()
             
         except Exception as e:
             rospy.logerr(f"Inference Error: {e}")
@@ -154,8 +153,6 @@ class InferenceNode:
             tts_msg = String()
             tts_msg.data = post_answer
             self.tts_pub.publish(tts_msg)
-
-            self.visualize_image()
             
         except Exception as e:
             rospy.logerr(f"Tool execution error: {e}")
