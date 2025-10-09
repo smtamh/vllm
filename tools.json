@@ -1,8 +1,8 @@
 [{
     "type": "function",
     "function":{
-        "name": "rock_paper_scissors",
-        "description": "You must play rock-paper-scissors as an assistant when the user requests or say rock-paper-scissors. The user plays as your opponent. This function selects and executes the assistant's move, detects the user's move from the image, and return both moves. After the game, you have to explain the result and say whether the user won, lost, or tied. Rock wins against scissors, scissors win against paper, and paper wins against rock. If the user's move and the assistant's move are the same, it's a tie.",
+        "name": "play_rock_paper_scissors",
+        "description": "Play rock-paper-scissors as an assistant when the user wants to. The user plays as your opponent. After the game, you have to explain the result and say whether the user won, lost, or tied. Rock wins against scissors, scissors win against paper, and paper wins against rock. If the user's move and the assistant's move are the same, it's a tie.",
         "parameters":{
             "type": "object",
             "properties":{},
@@ -13,8 +13,66 @@
 {
     "type": "function",
     "function":{
-        "name": "say_hello",
+        "name": "wave_hand",
         "description": "Wave your hand when the user says hello.",
+        "parameters":{
+            "type": "object",
+            "properties":{},
+            "required": []
+        }
+    }
+},
+{
+    "type": "function",
+    "function":{
+        "name": "shake_hand",
+        "description": "Shake hand with the user.",
+        "parameters":{
+            "type": "object",
+            "properties":{},
+            "required": []
+        }
+    }
+},
+{
+    "type": "function",
+    "function":{
+        "name": "move_hand_to",
+        "description": "Move the hand toward the specified object.",
+        "parameters":{
+            "type": "object",
+            "properties":{
+                "object_name":{
+                    "type": "string",
+                    "description": "English name of the target object to interact with."
+                }
+            },
+            "required": ["object_name"]
+        }
+    }
+},
+{
+    "type": "function",
+    "function":{
+        "name": "grasp",
+        "description": "Close the hand to grasp the object.",
+        "parameters":{
+            "type": "object",
+            "properties":{
+                "object_name":{
+                    "type": ["string","null"],
+                    "description": "English name of the object to grasp, or null"
+                }
+            },
+            "required": ["object_name"]
+        }
+    }
+},
+{
+    "type": "function",
+    "function":{
+        "name": "stretch",
+        "description": "Open the hand to release any held object.",
         "parameters":{
             "type": "object",
             "properties":{},

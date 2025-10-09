@@ -6,11 +6,6 @@
 Install packages in `python 3.10` virtual environment in `Ubuntu 20.04.6 LTS`:
     
     uv pip install rospkg vllm ultralytics
-    
-To enable image visualization, replace `opencv-python-headless` with `opencv-python`:
-
-    uv pip uninstall opencv-python-headless
-    uv pip install --force-reinstall --no-cache-dir opencv-python   
 
 You should also set third party packages.
 
@@ -18,6 +13,14 @@ You should also set third party packages.
     cd vllm/third_party/flashinfer
     uv pip install -e . --no-build-isolation -v
 
+    cd vllm/third_party/lang-segment-anything
+    uv pip install -e . --no-build-isolation -v
+
+To enable image visualization, replace `opencv-python-headless` with `opencv-python`:
+
+    uv pip uninstall opencv-python-headless
+    uv pip install --force-reinstall --no-cache-dir opencv-python   
+    
 <br>
 
 ## SSH Setting

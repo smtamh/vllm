@@ -44,7 +44,7 @@ For installation and setup details, refer to:
 
 You should download the following models before running:
 
-- **VLM**  
+- **Download from Huggingface**  
   Run the following command inside `src_client/` folder:  
   ```bash
   python download_model.py
@@ -55,3 +55,7 @@ You should download the following models before running:
 - **VOSK**  
   Download from https://alphacephei.com/vosk/models.  
   Save inside the `models/` folder and unzip.
+
+- **SAM 2**  
+  Download from https://github.com/facebookresearch/sam2.  
+  Save inside the `models/` folder.

@@ -1,6 +1,7 @@
-import json, cv2
+import json, cv2, rospy, os
 import numpy as np
 from PIL import Image
+from datetime import datetime
 
 # EXTERNAL FILES
 import config
@@ -35,3 +36,23 @@ def center_crop(img, size=320):
     cropped = img[start_y:start_y+min_dim, start_x:start_x+min_dim]
     resized = cv2.resize(cropped, (size, size))
     return resized
+
+def visualize_image(img):
+    try:
+        cv_image = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
+        cv2.imshow("Input Image", cv_image)
+        cv2.waitKey(1000)
+        cv2.destroyAllWindows()
+    except Exception as e:
+        rospy.logerr(f"Visualization error: {e}")
+
+def decode_image(msg):
+    np_arr = np.frombuffer(msg.data, np.uint8)
+    cv_image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+    return Image.fromarray(cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB))
+
+def save_image(img):
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    image_path = os.path.join(config.IMAGE_DIR, f"image_{timestamp}.jpg")
+    img.save(image_path)
+    rospy.loginfo(f"Image saved to {image_path}")

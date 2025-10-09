@@ -1,21 +1,30 @@
 import os, json, cv2, random
-os.environ["YOLO_OFFLINE"] = "true"
+import numpy as np
+import matplotlib.pyplot as plt
 
+import rospy
+from sensor_msgs.msg import CompressedImage
+
+# YOLO
+os.environ["YOLO_OFFLINE"] = "true"
 from ultralytics import YOLO
 
+# EXTERNAL FILES
 import config
-from utils import center_crop
+from utils import center_crop, visualize_image, decode_image
 # add your tool functions here
 
 def rock_paper_scissors(image=None):
     # execute your choice
-    # TODO: implement your choice execution logic
-
     choice = random.choice(["rock", "paper", "scissors"])
-    # check opponent's choice using YOLO
+    ## TODO: implement your choice execution logic
 
+    latest_image = decode_image(rospy.wait_for_message('/camera_image', CompressedImage, timeout=1.0))
+    config.CURRENT_IMAGE = latest_image
+    
+    # check opponent's choice using YOLO
     model = YOLO(config.YOLO_PATH)
-    image_cropped = center_crop(image, 320)
+    image_cropped = center_crop(latest_image, 320)
     results = model.predict(source=image_cropped, conf=0.25)
 
     opponent_choice = "none"
@@ -73,18 +82,91 @@ def rock_paper_scissors(image=None):
         cv2.imshow("YOLO Result", annotated)
         cv2.waitKey(1000)
         cv2.destroyAllWindows()
+    else:
+        visualize_image(image_cropped)
 
-    result = {"assistant_move": choice, "user_move": opponent_choice, "winner": winner}
+    result = {"executed": True, "assistant_move": choice, "user_move": opponent_choice, "winner": winner}
     return result
 
-def say_hello(image=None):
-    return {"message": "Hello!"}
+def wave_hand(image=None):
+    return {"executed": True}
+
+def shake_hand(image=None):
+    return {"executed": True}
+
+def detect_object(object, image=None):
+    
+    # LangSAM
+    detection = config.DETECTOR.predict([image], [object])
+    res = detection[0]
+    boxes = res['boxes']
+    labels = res['labels']
+    scores = res['scores']
+
+    if object in labels:
+        idxs = [i for i, lab in enumerate(labels) if lab == object]
+        bboxes = [boxes[i].tolist() for i in idxs]
+        result = {
+            "object": object,
+            "found": True,
+            "bbox": bboxes
+        }
+    else:
+        result = {
+            "object": object,
+            "found": False,
+            "bbox": []
+        }
+
+    # visualize
+    if result["found"]:
+        img_np = np.array(image).copy()
+        img_bgr = cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR)
+        for i, bbox in enumerate(result["bbox"]):
+            x1, y1, x2, y2 = map(int, bbox)
+            score = scores[idxs[i]]
+            cv2.rectangle(img_bgr, (x1, y1), (x2, y2), (0, 255, 0), 2)
+            cv2.putText(img_bgr, f"{object} ({score:.2f})", (x1, y1-10), 
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+        cv2.imshow("Detection Result", img_bgr)
+        cv2.waitKey(1000)
+        cv2.destroyAllWindows()
+    else:
+        visualize_image(image)
+
+    return result
+
+def move_hand_to(object_name=None, image=None):
+    detection = detect_object(object_name, image=image)
+    if detection["found"]:
+        ## TODO: implement your hand movement logic here
+        return {"executed": True, "moved_to": object_name, "bbox": detection["bbox"]}
+    else:
+        return {"executed": False}
+
+def grasp(object_name=None, image=None):
+    if object_name is None:
+        return {"executed": True, "grasped": None}
+    detection = detect_object(object_name, image=image)
+    if detection["found"]:
+        ## TODO: implement your grasping logic here
+        return {"executed": True, "grasped": detection}
+    else:
+        return {"executed": False}
+
+def stretch(image=None):
+    return {"executed": True}
 
 ################################################################
 
 # add your tool functions in FUNC_REGISTRY
 FUNC_REGISTRY = {
-    "rock_paper_scissors": rock_paper_scissors,
+    "play_rock_paper_scissors": rock_paper_scissors,
+    "wave_hand": wave_hand,
+    "shake_hand": shake_hand,
+    "move_hand_to": move_hand_to,
+    "grasp": grasp,
+    "stretch": stretch
 }
 
 # DO NOT CHANGE THIS: main function to execute tool calls
@@ -102,7 +184,6 @@ def execute_tool(tool_calls, image=None):
             "tool_call_id": getattr(tc, "id", None),
             "function": func_name,
             "arguments": kwargs,
-            "executed": True,
             "result": out
         })
 

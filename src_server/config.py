@@ -27,9 +27,9 @@ SAMPLING_PARAMS = {
 }
 
 # Network Settings
-SERVER_ROS_MASTER_URI = "http://10.149.194.47:11311"
-SERVER_ROS_IP = "10.149.194.47"
-CLIENT_ROS_IP = "10.149.192.47"
+SERVER_ROS_MASTER_URI = "http://10.149.192.134:11311"
+SERVER_ROS_IP = "10.149.192.134"
+CLIENT_ROS_IP = "10.150.197.243"
 
 # Input Mode
 USE_TYPING = True  # If True, use keyboard input; if False, use STT input
