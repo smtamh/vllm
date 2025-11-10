@@ -27,6 +27,7 @@ class FinalNode:
 
         # TTS
         self.tts_state_pub = rospy.Publisher('/tts_playing', Bool, queue_size=1)
+        rospy.sleep(0.5)
         self.q = queue.Queue()
         self.tts_thread = threading.Thread(target=self.tts_worker, daemon=True)
         self.tts_thread.start()

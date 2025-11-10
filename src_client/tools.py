@@ -1,9 +1,13 @@
-import os, json, cv2, random
+import os, json, cv2, random, time, subprocess
 import numpy as np
 import matplotlib.pyplot as plt
 
+# ROS
 import rospy
+from std_msgs.msg import String
 from sensor_msgs.msg import CompressedImage
+from tocabi_msgs.msg import positionCommand, TaskCommand
+from std_msgs.msg import Bool, Int32
 
 # YOLO
 os.environ["YOLO_OFFLINE"] = "true"
@@ -14,12 +18,56 @@ import config
 from utils import center_crop, visualize_image, decode_image
 # add your tool functions here
 
+def init_tool_publishers():
+    global mode_pub, hand_open_pub, task_command_pub, joint_state_pub, tts_pub
+    mode_pub = rospy.Publisher('/tocabi/act/mode', Int32, queue_size=10)
+    hand_open_pub = rospy.Publisher('/mujoco_ros_interface/hand_open', Int32, queue_size=10)
+    task_command_pub = rospy.Publisher('/tocabi/taskcommand', TaskCommand, queue_size=10)
+    joint_state_pub = rospy.Publisher('/tocabi/positioncommand', positionCommand, queue_size=10)
+    tts_pub = rospy.Publisher('/tts_request', String, queue_size=10)
+    rospy.loginfo(rospy.get_published_topics())
+    rospy.sleep(0.5)
+
+def publish_to_sim():
+    env = os.environ.copy()
+    env["ROS_MASTER_URI"] = config.CLIENT_ROS_MASTER_URI
+    env["ROS_IP"] = config.CLIENT_ROS_IP
+    return env
+
 def rock_paper_scissors(image=None):
+    tts_msg  = String()
+    tts_msg.data = "Rock, Paper, Scissors!"
+    tts_pub.publish(tts_msg)
+    time.sleep(0.5)
+
+    # if you use simulator in the client side, change the ROS environment
+    # env = publish_to_sim()
+
     # execute your choice
     choice = random.choice(["rock", "paper", "scissors"])
-    ## TODO: implement your choice execution logic
 
-    latest_image = decode_image(rospy.wait_for_message('/camera_image', CompressedImage, timeout=1.0))
+    ## implement your choice execution logic
+    msg = Int32()
+    if  choice == "rock":
+        msg.data = 1
+    elif choice == "paper":
+        msg.data = 0
+    elif choice == "scissors":
+        msg.data = 2
+
+    # # if you use simulator in the client side
+    # subprocess.Popen([
+    #     "rostopic", "pub", "-1",
+    #     "/mujoco_ros_interface/hand_open", "std_msgs/Int32", f"data: {msg.data}"
+    # ], env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    # time.sleep(1)
+
+    # if you use simulator in the server side == default (Also for the real robot)
+    hand_open_pub.publish(msg)
+    time.sleep(1)
+
+    # get opponent's choice
+    latest_image = decode_image(rospy.wait_for_message('/camera_image', CompressedImage, timeout=5.0))
     config.CURRENT_IMAGE = latest_image
     
     # check opponent's choice using YOLO
@@ -95,7 +143,8 @@ def shake_hand(image=None):
     return {"executed": True}
 
 def detect_object(object, image=None):
-    
+    image = decode_image(rospy.wait_for_message("/mujoco_ros_interface/camera/image/compressed", CompressedImage, timeout=1.0))
+
     # LangSAM
     detection = config.DETECTOR.predict([image], [object])
     res = detection[0]
@@ -145,16 +194,26 @@ def move_hand_to(object_name=None, image=None):
         return {"executed": False}
 
 def grasp(object_name=None, image=None):
+    msg = Int32()
+    msg.data = 1
     if object_name is None:
+        ## implement your grasping logic here
+        hand_open_pub.publish(msg)
+        time.sleep(2)
         return {"executed": True, "grasped": None}
     detection = detect_object(object_name, image=image)
     if detection["found"]:
-        ## TODO: implement your grasping logic here
+        ## implement your grasping logic here
+        hand_open_pub.publish(msg)
+        time.sleep(2)
         return {"executed": True, "grasped": detection}
     else:
         return {"executed": False}
 
 def stretch(image=None):
+    msg = Int32()
+    msg.data = 0
+    hand_open_pub.publish(msg)
     return {"executed": True}
 
 ################################################################

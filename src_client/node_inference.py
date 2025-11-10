@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import os, sys
+import os, sys, time
 
 # ROS
 ros_python_path = "/opt/ros/noetic/lib/python3/dist-packages"
@@ -19,7 +19,7 @@ import cv2
 # External Files
 import config
 from utils import build_prompt, visualize_image, decode_image, save_image
-from tools import execute_tool
+from tools import execute_tool, init_tool_publishers
 from message import MsgBuffer
 
 class InferenceNode:
@@ -33,11 +33,13 @@ class InferenceNode:
         os.environ['ROS_IP'] = config.CLIENT_ROS_IP
         
         rospy.init_node('inference_node', anonymous=True)
+        init_tool_publishers()
         rospy.loginfo(f"🌐 SERVER_ROS_MASTER_URI: {config.SERVER_ROS_MASTER_URI}")
-        rospy.loginfo(f"🌐 SERVER_ROS_IP: {config.CLIENT_ROS_IP}")
+        rospy.loginfo(f"🌐 CLIENT_ROS_IP: {config.CLIENT_ROS_IP}")
 
         # Publishers
         self.tts_pub = rospy.Publisher('/tts_request', String, queue_size=10)
+        rospy.sleep(0.5)
 
         # Initialize VLM
         self.sampling_params = SamplingParams(**config.SAMPLING_PARAMS)
@@ -77,6 +79,7 @@ class InferenceNode:
 
     def stt_callback(self, msg):
         try:
+            t1 = time.time()
             user_input = msg.data
             if not user_input:
                 return
@@ -97,7 +100,7 @@ class InferenceNode:
                 sampling_params=self.sampling_params,
                 use_tqdm=True
             )
-            
+            t2 = time.time()
             answer = output[0].outputs[0].text.strip()
             self.conversation.append_assistant(answer)
             info = self.parser.extract_tool_calls(answer, request=None)
@@ -107,12 +110,13 @@ class InferenceNode:
                 self.handle_tool_calls(info.tool_calls)
             else:
                 rospy.loginfo(self.conversation)
+                rospy.loginfo(f"Response Time: {t2 - t1:.2f} seconds")
 
                 # Send to TTS
                 tts_msg = String()
                 tts_msg.data = answer
                 self.tts_pub.publish(tts_msg)
-
+                time.sleep(0.5)
                 visualize_image(self.latest_image)
             
         except Exception as e:
@@ -153,12 +157,12 @@ class InferenceNode:
                 info = self.parser.extract_tool_calls(post_answer, request=None)
                 current_tool_calls = info.tool_calls if info else None
 
-            rospy.loginfo(self.conversation)
-            
-            # Send to TTS
-            tts_msg = String()
-            tts_msg.data = post_answer
-            self.tts_pub.publish(tts_msg)
+                rospy.loginfo(self.conversation)
+                
+                # Send to TTS
+                tts_msg = String()
+                tts_msg.data = post_answer
+                self.tts_pub.publish(tts_msg)
             
         except Exception as e:
             rospy.logerr(f"Tool execution error: {e}")

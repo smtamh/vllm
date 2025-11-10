@@ -34,6 +34,7 @@ class StartNode:
         self.text_queue = queue.Queue() # Queue for finalized STT sentences / typed input
         self.text_pub = rospy.Publisher('/audio_text', String, queue_size=10)
         self.image_pub = rospy.Publisher('/camera_image', CompressedImage, queue_size=10)
+        rospy.sleep(0.5)
         
         # Image
         self.cap = cv2.VideoCapture(0)
@@ -165,18 +166,18 @@ class StartNode:
             raise
 
     def cleanup(self):
-            try:
-                if hasattr(self, 'stop_event'):
-                    self.stop_event.set()
-                if hasattr(self, 'stt_thread') and self.stt_thread.is_alive():
-                    self.stt_thread.join(timeout=1.0)
+        try:
+            if hasattr(self, 'stop_event'):
+                self.stop_event.set()
+            if hasattr(self, 'stt_thread') and self.stt_thread.is_alive():
+                self.stt_thread.join(timeout=1.0)
 
-                if self.cap.isOpened():
-                    self.cap.release()
-                cv2.destroyAllWindows()
-                rospy.loginfo("Resources cleaned up successfully")
-            except Exception as e:
-                rospy.logerr(f"Error during cleanup: {e}")
+            if self.cap.isOpened():
+                self.cap.release()
+            cv2.destroyAllWindows()
+            rospy.loginfo("Resources cleaned up successfully")
+        except Exception as e:
+            rospy.logerr(f"Error during cleanup: {e}")
 
 if __name__ == '__main__':
     try:
@@ -184,6 +185,7 @@ if __name__ == '__main__':
         node.run()
     except rospy.ROSInterruptException:
         pass
+    
     finally:
         # Terminate STT thread
         try:
