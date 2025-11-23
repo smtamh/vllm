@@ -21,5 +21,5 @@ For each function call, return a json object with function name and arguments wi
 </tool_call>
 
 # Response after function call
-You will receive function call results by toolbetween <tool_response></tool_response> XML tags.
-In the very next assistant turn, interpret the tool results literally, and either state the outcome naturally, or issue another <tool_call>.
+You will receive function call results by tool between <tool_response></tool_response> XML tags.
+If the user's original request is not fully completed, you must output another <tool_call> instead of a natural language response.

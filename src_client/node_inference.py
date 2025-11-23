@@ -64,18 +64,25 @@ class InferenceNode:
 
         # Subscribers
         rospy.Subscriber('/audio_text', String, self.stt_callback)
-        rospy.Subscriber('/camera_image', CompressedImage, self.image_callback)
+        # rospy.Subscriber('/camera_image', CompressedImage, self.cam_image_callback)   # use when you don't use sim_image
+        rospy.Subscriber('/mujoco_ros_interface/cam_L/image/compressed', CompressedImage, self.sim_image_callback)
 
         # Image
         self.latest_image = None
         
         rospy.loginfo("Inference Node initialized")
     
-    def image_callback(self, msg):
+    def sim_image_callback(self, msg):
         try:
             self.latest_image = decode_image(msg)
         except Exception as e:
-            rospy.logerr(f"Image callback error: {e}")
+            rospy.logerr(f"Sim Image callback error: {e}")
+
+    def cam_image_callback(self, msg):
+        try:
+            self.latest_image = decode_image(msg)
+        except Exception as e:
+            rospy.logerr(f"Cam Image callback error: {e}")
 
     def stt_callback(self, msg):
         try:

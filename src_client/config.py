@@ -27,17 +27,14 @@ VLM_MAX_LENGTH  = 16384
 VLM_LIMIT_INPUT = {"video": 0}
 
 SAMPLING_PARAMS = {
-    "temperature": 0.1,
-    "top_p": 0.9,
+    "temperature": 0.7,
+    "top_p": 0.8,
     "top_k": 20,
     "max_tokens": 300
 }
 
 # Network Settings
-SERVER_ROS_MASTER_URI = "http://10.149.192.129:11311"
-SERVER_ROS_IP = "10.149.192.129"
-CLIENT_ROS_MASTER_URI = "http://10.150.196.35:11311"
-CLIENT_ROS_IP = "10.150.196.35"
-
-# Input Mode
-USE_TYPING = True  # If True, use keyboard input; if False, use STT input
+SERVER_ROS_MASTER_URI = "http://10.149.192.48:11311"
+SERVER_ROS_IP = "10.149.192.48"
+CLIENT_ROS_MASTER_URI = "http://10.150.196.61:11311"
+CLIENT_ROS_IP = "10.150.196.61"

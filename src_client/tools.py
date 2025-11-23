@@ -8,6 +8,7 @@ from std_msgs.msg import String
 from sensor_msgs.msg import CompressedImage
 from tocabi_msgs.msg import positionCommand, TaskCommand
 from std_msgs.msg import Bool, Int32
+from geometry_msgs.msg import Pose
 
 # YOLO
 os.environ["YOLO_OFFLINE"] = "true"
@@ -19,12 +20,15 @@ from utils import center_crop, visualize_image, decode_image
 # add your tool functions here
 
 def init_tool_publishers():
-    global mode_pub, hand_open_pub, task_command_pub, joint_state_pub, tts_pub
+    global mode_pub, hand_open_pub, task_command_pub, joint_state_pub, tts_pub, rrt_pub, target_pub, grasped_pub
     mode_pub = rospy.Publisher('/tocabi/act/mode', Int32, queue_size=10)
     hand_open_pub = rospy.Publisher('/mujoco_ros_interface/hand_open', Int32, queue_size=10)
     task_command_pub = rospy.Publisher('/tocabi/taskcommand', TaskCommand, queue_size=10)
     joint_state_pub = rospy.Publisher('/tocabi/positioncommand', positionCommand, queue_size=10)
     tts_pub = rospy.Publisher('/tts_request', String, queue_size=10)
+    rrt_pub = rospy.Publisher('/tocabi/srmt/start_rrt', Bool, queue_size=1)
+    target_pub = rospy.Publisher('/target_pose', Pose, queue_size=1)
+    grasped_pub = rospy.Publisher('/tocabi/obj_grasped', Bool, queue_size=1)
     rospy.loginfo(rospy.get_published_topics())
     rospy.sleep(0.5)
 
@@ -64,7 +68,7 @@ def rock_paper_scissors(image=None):
 
     # if you use simulator in the server side == default (Also for the real robot)
     hand_open_pub.publish(msg)
-    time.sleep(1)
+    time.sleep(2)
 
     # get opponent's choice
     latest_image = decode_image(rospy.wait_for_message('/camera_image', CompressedImage, timeout=5.0))
@@ -143,8 +147,7 @@ def shake_hand(image=None):
     return {"executed": True}
 
 def detect_object(object, image=None):
-    image = decode_image(rospy.wait_for_message("/mujoco_ros_interface/camera/image/compressed", CompressedImage, timeout=1.0))
-
+    
     # LangSAM
     detection = config.DETECTOR.predict([image], [object])
     res = detection[0]
@@ -185,35 +188,86 @@ def detect_object(object, image=None):
 
     return result
 
-def move_hand_to(object_name=None, image=None):
-    detection = detect_object(object_name, image=image)
-    if detection["found"]:
-        ## TODO: implement your hand movement logic here
-        return {"executed": True, "moved_to": object_name, "bbox": detection["bbox"]}
-    else:
-        return {"executed": False}
+def move_hand_to(x, y, z=None, image=None):
+    # target range: x in [0.4, 0.9], y in [-0.55, 0.55]
+    target = [x, y, z if z is not None else 1.025]
+    
+    target_msg = Pose()
+    target_msg.position.x = target[0]
+    target_msg.position.y = target[1]
+    target_msg.position.z = target[2]
+
+    target_msg.orientation.x = 0.0
+    target_msg.orientation.y = 0.0
+    target_msg.orientation.z = 0.0
+    target_msg.orientation.w = 1.0
+    target_pub.publish(target_msg)
+    time.sleep(1)
+    
+    rrt_msg = Bool()
+    rrt_msg.data = True
+    rrt_pub.publish(rrt_msg)
+    time.sleep(1)
+    return {"executed": True, "moved_to": target}
 
 def grasp(object_name=None, image=None):
-    msg = Int32()
-    msg.data = 1
-    if object_name is None:
-        ## implement your grasping logic here
-        hand_open_pub.publish(msg)
-        time.sleep(2)
-        return {"executed": True, "grasped": None}
-    detection = detect_object(object_name, image=image)
-    if detection["found"]:
-        ## implement your grasping logic here
-        hand_open_pub.publish(msg)
-        time.sleep(2)
-        return {"executed": True, "grasped": detection}
+    # msg = Int32()
+    # msg.data = 1
+    # if object_name is None:
+    #     ## implement your grasping logic here
+    #     time.sleep(2)
+    #     return {"executed": True, "grasped": None}
+    # detection = detect_object(object_name, image=image)
+    # if detection["found"]:
+    #     ## implement your grasping logic here
+    #     hand_open_pub.publish(msg)
+    #     time.sleep(2)
+    #     return {"executed": True, "grasped": detection}
+    # else:
+    #     return {"executed": False}
+
+    if object_name is not None:
+        detection = detect_object(object_name, image=image)
+        if detection["found"]:
+            rrt_msg = Bool()
+            rrt_msg.data = True
+            rrt_pub.publish(rrt_msg)
+            time.sleep(1)
+
+        try:
+            msg = rospy.wait_for_message('/tocabi/srmt/end_rrt', Bool, timeout=10.0)
+        except rospy.ROSException:
+            return {"executed": False}
+        
+        if msg.data is True:
+            hand_msg = Int32()
+            hand_msg.data = 1
+            hand_open_pub.publish(hand_msg)
+            time.sleep(1)
+
+            grasp_msg = Bool()
+            grasp_msg.data = True
+            grasped_pub.publish(grasp_msg)
+            time.sleep(1)
+
     else:
-        return {"executed": False}
+        hand_msg = Int32()
+        hand_msg.data = 1
+        hand_open_pub.publish(hand_msg)
+        time.sleep(1)
+
+    return {"executed": True, "grasped": object_name}
 
 def stretch(image=None):
-    msg = Int32()
-    msg.data = 0
-    hand_open_pub.publish(msg)
+    hand_msg = Int32()
+    hand_msg.data = 0
+    hand_open_pub.publish(hand_msg)
+    time.sleep(1)
+
+    grasp_msg = Bool()
+    grasp_msg.data = False
+    grasped_pub.publish(grasp_msg)
+    time.sleep(1)
     return {"executed": True}
 
 ################################################################
@@ -225,7 +279,7 @@ FUNC_REGISTRY = {
     "shake_hand": shake_hand,
     "move_hand_to": move_hand_to,
     "grasp": grasp,
-    "stretch": stretch
+    "stretch_hand": stretch
 }
 
 # DO NOT CHANGE THIS: main function to execute tool calls
@@ -235,15 +289,18 @@ def execute_tool(tool_calls, image=None):
     for tc in tool_calls:
         func_name = tc.function.name
         raw_args  = tc.function.arguments
+        func      = FUNC_REGISTRY.get(func_name)
         kwargs    = json.loads(raw_args)
 
-        func = FUNC_REGISTRY.get(func_name)
         out = func(**kwargs, image=image)
+        
         results.append({
             "tool_call_id": getattr(tc, "id", None),
             "function": func_name,
             "arguments": kwargs,
             "result": out
         })
+
+        time.sleep(3)
 
     return results
